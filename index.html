@@ -379,6 +379,7 @@
     try{
       const res = await fetch(SCRIPT_URL, {method:"GET"});
       const data = await res.json();
+      console.log("[results] endpoint:", SCRIPT_URL.slice(-12), "| all:", data.all, "| today:", data.today);
       latest = {
         all:   { A: data.all?.A||0,   B: data.all?.B||0 },
         today: { A: data.today?.A||0, B: data.today?.B||0 }

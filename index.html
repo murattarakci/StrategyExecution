@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Strategy vs. Execution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4f1ea;
+    --card:#fbfaf6;
+    --ink:#1c1b19;
+    --muted:#6f6b63;
+    --line:rgba(28,27,25,.12);
+    --line-strong:rgba(28,27,25,.28);
+    --blue:#2d4a7c;
+    --blue-soft:#eef1f6;
+    --clay:#b1502f;
+    --clay-soft:#f6ece7;
+    --shadow:0 1px 2px rgba(28,27,25,.04),0 12px 30px -12px rgba(28,27,25,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Public Sans",system-ui,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    min-height:100dvh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* faint paper texture */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(177,80,47,.05), transparent 60%),
+      radial-gradient(1000px 600px at -10% 110%, rgba(45,74,124,.05), transparent 60%);
+  }
+  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:clamp(28px,6vw,72px) clamp(20px,5vw,32px) 120px}
+
+  .eyebrow{
+    font-size:13px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin-bottom:18px;
+  }
+  .eyebrow .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--clay);margin-right:9px;vertical-align:middle}
+
+  h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:clamp(32px,7vw,52px);
+    line-height:1.06;
+    letter-spacing:-.01em;
+    margin-bottom:16px;
+  }
+  .lead{
+    font-size:clamp(16px,2.4vw,18px);
+    color:var(--muted);
+    max-width:48ch;
+    margin-bottom:clamp(28px,5vw,40px);
+  }
+
+  /* option cards */
+  .options{display:grid;gap:16px}
+  .opt{
+    appearance:none;text-align:left;width:100%;cursor:pointer;
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:16px;
+    padding:22px 22px 22px 22px;
+    display:flex;gap:18px;align-items:flex-start;
+    box-shadow:var(--shadow);
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+    font-family:inherit;color:inherit;
+    opacity:0;transform:translateY(14px);
+    animation:rise .6s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  .opt:nth-child(1){animation-delay:.08s}
+  .opt:nth-child(2){animation-delay:.18s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(hover:hover){.opt:hover{transform:translateY(-3px);border-color:var(--line-strong);box-shadow:0 1px 2px rgba(28,27,25,.05),0 20px 40px -16px rgba(28,27,25,.28)}}
+  .opt:active{transform:translateY(0) scale(.995)}
+
+  .marker{
+    flex:0 0 auto;width:34px;height:34px;border-radius:10px;
+    display:grid;place-items:center;font-family:"Fraunces",serif;font-weight:600;font-size:17px;
+    border:1.5px solid var(--line);background:#fff;transition:all .18s ease;
+  }
+  .opt[data-key="A"] .marker{color:var(--blue)}
+  .opt[data-key="B"] .marker{color:var(--clay)}
+
+  .opt .body .t{font-size:18px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
+  .opt .body .s{font-size:14.5px;color:var(--muted)}
+
+  .opt[aria-pressed="true"]{border-color:transparent}
+  .opt[data-key="A"][aria-pressed="true"]{background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue) inset,var(--shadow)}
+  .opt[data-key="B"][aria-pressed="true"]{background:var(--clay-soft);box-shadow:0 0 0 2px var(--clay) inset,var(--shadow)}
+  .opt[data-key="A"][aria-pressed="true"] .marker{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .opt[data-key="B"][aria-pressed="true"] .marker{background:var(--clay);color:#fff;border-color:var(--clay)}
+
+  .submit{
+    margin-top:26px;width:100%;cursor:pointer;font-family:inherit;
+    background:var(--ink);color:var(--paper);
+    border:none;border-radius:14px;padding:17px 24px;
+    font-size:16px;font-weight:600;letter-spacing:.01em;
+    transition:opacity .2s ease,transform .15s ease;
+    opacity:.35;pointer-events:none;
+  }
+  .submit.ready{opacity:1;pointer-events:auto}
+  .submit.ready:active{transform:scale(.99)}
+
+  .note{margin-top:16px;font-size:13px;color:var(--muted);text-align:center}
+
+  /* thank you / confirmation */
+  .done{display:none;text-align:center;padding-top:6px;opacity:0;animation:fade .6s ease forwards}
+  .done.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .done .check{
+    width:64px;height:64px;border-radius:50%;margin:0 auto 22px;
+    background:var(--blue);display:grid;place-items:center;
+  }
+  .done .check svg{width:30px;height:30px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .done h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(26px,5vw,34px);margin-bottom:10px}
+  .done p{color:var(--muted);max-width:40ch;margin:0 auto}
+  .pick-pill{display:inline-block;margin-top:18px;font-size:14px;font-weight:600;padding:8px 16px;border-radius:999px;background:#fff;border:1.5px solid var(--line)}
+
+  /* facilitator launch button */
+  .fab{
+    position:fixed;right:18px;bottom:18px;z-index:30;
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(251,250,246,.9);backdrop-filter:blur(8px);
+    border:1.5px solid var(--line);border-radius:999px;
+    padding:10px 16px;font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);
+    cursor:pointer;box-shadow:var(--shadow);transition:all .18s ease;
+  }
+  .fab:hover{color:var(--ink);border-color:var(--line-strong);transform:translateY(-1px)}
+  .fab svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none}
+
+  /* overlay (password + results) */
+  .overlay{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:20px;
+    background:rgba(28,27,25,.32);backdrop-filter:blur(6px)}
+  .overlay.show{display:flex;animation:fade .25s ease}
+  .panel{
+    background:var(--paper);border-radius:20px;width:100%;max-width:560px;
+    box-shadow:0 30px 80px -24px rgba(28,27,25,.5);
+    border:1px solid var(--line);overflow:hidden;
+    max-height:92dvh;overflow-y:auto;
+  }
+  .panel-inner{padding:clamp(24px,5vw,40px)}
+  .panel .x{position:absolute;top:14px;right:16px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(28,27,25,.06);cursor:pointer;font-size:18px;color:var(--muted);line-height:1}
+  .panel{position:relative}
+
+  .lock-title{font-family:"Fraunces",serif;font-weight:600;font-size:24px;margin-bottom:6px}
+  .lock-sub{font-size:14px;color:var(--muted);margin-bottom:22px}
+  .field{display:flex;gap:10px}
+  .field input{
+    flex:1;font-family:inherit;font-size:16px;padding:14px 16px;border-radius:12px;
+    border:1.5px solid var(--line);background:#fff;color:var(--ink);outline:none;transition:border-color .18s ease;
+  }
+  .field input:focus{border-color:var(--ink)}
+  .field button{font-family:inherit;font-weight:600;font-size:15px;padding:0 22px;border-radius:12px;border:none;background:var(--ink);color:var(--paper);cursor:pointer}
+  .err{color:var(--clay);font-size:13px;font-weight:600;margin-top:12px;min-height:18px}
+  .shake{animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+  /* results */
+  .results{display:none}
+  .results.show{display:block}
+  .results .rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:4px}
+  .results .q{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(22px,4vw,28px);line-height:1.1;letter-spacing:-.01em}
+  .results .total{text-align:right;flex:0 0 auto}
+  .results .total .n{font-family:"Fraunces",serif;font-weight:600;font-size:40px;line-height:1}
+  .results .total .l{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+  .scope{display:inline-flex;align-items:center;gap:9px;margin-top:22px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--muted);user-select:none}
+  .scope input{position:absolute;opacity:0;width:0;height:0}
+  .scope .box{width:38px;height:22px;border-radius:999px;background:rgba(28,27,25,.14);position:relative;transition:background .18s ease;flex:0 0 auto}
+  .scope .box::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .18s ease}
+  .scope input:checked + .box{background:var(--blue)}
+  .scope input:checked + .box::after{transform:translateX(16px)}
+  .scope input:focus-visible + .box{outline:2px solid var(--ink);outline-offset:2px}
+  .bars{margin-top:22px;display:grid;gap:26px}
+  .bar .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .bar .name{font-size:15px;font-weight:600;max-width:75%}
+  .bar .pct{font-family:"Fraunces",serif;font-weight:600;font-size:28px}
+  .track{height:18px;border-radius:999px;background:rgba(28,27,25,.07);overflow:hidden}
+  .fill{height:100%;width:0;border-radius:999px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  .bar[data-key="A"] .fill{background:linear-gradient(90deg,#3a5d96,var(--blue))}
+  .bar[data-key="A"] .pct{color:var(--blue)}
+  .bar[data-key="B"] .fill{background:linear-gradient(90deg,#c9683f,var(--clay))}
+  .bar[data-key="B"] .pct{color:var(--clay)}
+  .bar .count{font-size:13px;color:var(--muted);margin-top:8px}
+
+  .rfoot{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:12px}
+  .rfoot .ghost{font-family:inherit;font-size:14px;font-weight:600;color:var(--muted);background:none;border:1.5px solid var(--line);border-radius:10px;padding:10px 16px;cursor:pointer}
+  .rfoot .ghost:hover{color:var(--ink);border-color:var(--line-strong)}
+  .live{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+  .live .pulse{width:8px;height:8px;border-radius:50%;background:#3a9d6b;box-shadow:0 0 0 0 rgba(58,157,107,.5);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(58,157,107,.5)}70%{box-shadow:0 0 0 7px rgba(58,157,107,0)}100%{box-shadow:0 0 0 0 rgba(58,157,107,0)}}
+  .empty{text-align:center;color:var(--muted);padding:40px 0;font-size:15px}
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <!-- SURVEY -->
+    <section id="survey">
+      <div class="eyebrow"><span class="dot"></span>Strategy vs. Execution</div>
+      <h1>Which would you rather have?</h1>
+      <p class="lead">A brilliant strategy held back by weak execution, or a flawed strategy carried by brilliant execution. Choose the one you would rather have.</p>
+
+      <div class="options">
+        <button class="opt" data-key="A" aria-pressed="false" onclick="select('A')">
+          <span class="marker">A</span>
+          <span class="body">
+            <span class="t">A brilliant strategy, poorly executed</span>
+          </span>
+        </button>
+        <button class="opt" data-key="B" aria-pressed="false" onclick="select('B')">
+          <span class="marker">B</span>
+          <span class="body">
+            <span class="t">A flawed strategy, brilliantly executed</span>
+          </span>
+        </button>
+      </div>
+
+      <button id="submit" class="submit" onclick="submitVote()">Submit response</button>
+      <p class="note">One response per device. Your answer is anonymous.</p>
+    </section>
+
+    <!-- CONFIRMATION -->
+    <section id="done" class="done">
+      <div class="check"><svg viewBox="0 0 24 24"><polyline points="4 12.5 10 18 20 6"></polyline></svg></div>
+      <h2>Response recorded</h2>
+      <p>Thank you. Your answer has been added to the room's results.</p>
+      <div id="pickPill" class="pick-pill"></div>
+    </section>
+  </main>
+
+  <!-- FACILITATOR BUTTON -->
+  <button class="fab" onclick="openGate()">
+    <svg viewBox="0 0 24 24"><path d="M3 13h4l3 7 4-16 3 9h4"/></svg>
+    Facilitator view
+  </button>
+
+  <!-- OVERLAY -->
+  <div class="overlay" id="overlay">
+    <div class="panel">
+      <button class="x" onclick="closeOverlay()">&times;</button>
+      <div class="panel-inner">
+        <!-- gate -->
+        <div id="gate">
+          <div class="lock-title">Facilitator access</div>
+          <div class="lock-sub">Enter the password to view live results.</div>
+          <div class="field">
+            <input id="pw" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()" autocomplete="off">
+            <button onclick="checkPw()">Enter</button>
+          </div>
+          <div class="err" id="err"></div>
+        </div>
+
+        <!-- results -->
+        <div id="results" class="results">
+          <div class="rhead">
+            <div class="q">Which would you rather have?</div>
+            <div class="total"><div class="n" id="totalN">0</div><div class="l" id="totalL">Responses</div></div>
+          </div>
+          <label class="scope"><input type="checkbox" id="todayOnly" onchange="renderCurrent()"><span class="box"></span>Today only</label>
+          <div class="bars">
+            <div class="bar" data-key="A">
+              <div class="top"><div class="name">A brilliant strategy, poorly executed</div><div class="pct" id="pctA">0%</div></div>
+              <div class="track"><div class="fill" id="fillA"></div></div>
+              <div class="count" id="cntA">0 responses</div>
+            </div>
+            <div class="bar" data-key="B">
+              <div class="top"><div class="name">A flawed strategy, brilliantly executed</div><div class="pct" id="pctB">0%</div></div>
+              <div class="track"><div class="fill" id="fillB"></div></div>
+              <div class="count" id="cntB">0 responses</div>
+            </div>
+          </div>
+          <div id="emptyState" class="empty" style="display:none">No responses yet. Results will appear here as people vote.</div>
+          <div class="rfoot">
+            <span class="live"><span class="pulse"></span>Live, auto-refresh</span>
+            <button class="ghost" onclick="loadResults()">Refresh now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* ====== CONFIG ====== */
+  // Paste your Google Apps Script Web App URL between the quotes (see setup steps).
+  const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+  const PASSWORD   = "StrategyExecution";
+  const LABELS = {
+    A: "A brilliant strategy, poorly executed",
+    B: "A flawed strategy, brilliantly executed"
+  };
+  /* ==================== */
+
+  let selected = null;
+  let refreshTimer = null;
+
+  // already voted on this device?
+  if (localStorage.getItem("se_voted")) {
+    showDone(localStorage.getItem("se_voted"));
+  }
+
+  function select(key){
+    selected = key;
+    document.querySelectorAll(".opt").forEach(b=>b.setAttribute("aria-pressed", b.dataset.key===key));
+    document.getElementById("submit").classList.add("ready");
+  }
+
+  async function submitVote(){
+    if(!selected) return;
+    const btn = document.getElementById("submit");
+    btn.textContent = "Sending...";
+    btn.classList.remove("ready");
+    try{
+      await fetch(SCRIPT_URL, {
+        method:"POST",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify({ choice: selected, label: LABELS[selected] })
+      });
+    }catch(e){ /* best effort; classroom networks vary */ }
+    localStorage.setItem("se_voted", selected);
+    showDone(selected);
+  }
+
+  function showDone(key){
+    document.getElementById("survey").style.display="none";
+    const done = document.getElementById("done");
+    done.classList.add("show");
+    document.getElementById("pickPill").textContent = "You chose: " + LABELS[key];
+  }
+
+  /* ---- facilitator ---- */
+  function openGate(){
+    document.getElementById("overlay").classList.add("show");
+    document.getElementById("gate").style.display="block";
+    document.getElementById("results").classList.remove("show");
+    document.getElementById("err").textContent="";
+    document.getElementById("pw").value="";
+    setTimeout(()=>document.getElementById("pw").focus(),100);
+  }
+  function closeOverlay(){
+    document.getElementById("overlay").classList.remove("show");
+    if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null;}
+  }
+  function checkPw(){
+    const val = document.getElementById("pw").value;
+    if(val===PASSWORD){
+      document.getElementById("gate").style.display="none";
+      document.getElementById("results").classList.add("show");
+      loadResults();
+      refreshTimer = setInterval(loadResults, 5000);
+    }else{
+      const e=document.getElementById("err");
+      e.textContent="Incorrect password.";
+      document.querySelector(".field").classList.add("shake");
+      setTimeout(()=>document.querySelector(".field").classList.remove("shake"),400);
+    }
+  }
+
+  let latest = { all:{A:0,B:0}, today:{A:0,B:0} };
+
+  async function loadResults(){
+    try{
+      const res = await fetch(SCRIPT_URL, {method:"GET"});
+      const data = await res.json();
+      latest = {
+        all:   { A: data.all?.A||0,   B: data.all?.B||0 },
+        today: { A: data.today?.A||0, B: data.today?.B||0 }
+      };
+      renderCurrent();
+    }catch(e){
+      console.warn("Could not load results", e);
+    }
+  }
+
+  function renderCurrent(){
+    const todayOnly = document.getElementById("todayOnly").checked;
+    const d = todayOnly ? latest.today : latest.all;
+    document.getElementById("totalL").textContent = todayOnly ? "Today" : "Responses";
+    render(d.A, d.B);
+  }
+
+  function render(a,b){
+    const total=a+b;
+    document.getElementById("totalN").textContent=total;
+    const pa = total? Math.round(a/total*100):0;
+    const pb = total? 100-pa:0;
+    document.getElementById("pctA").textContent=pa+"%";
+    document.getElementById("pctB").textContent=pb+"%";
+    document.getElementById("fillA").style.width=pa+"%";
+    document.getElementById("fillB").style.width=pb+"%";
+    document.getElementById("cntA").textContent=a+(a===1?" response":" responses");
+    document.getElementById("cntB").textContent=b+(b===1?" response":" responses");
+    document.getElementById("emptyState").style.display = total? "none":"block";
+  }
+</script>
+</body>
+</html>

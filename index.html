@@ -71,7 +71,7 @@
     border:1.5px solid var(--line);
     border-radius:16px;
     padding:22px 22px 22px 22px;
-    display:flex;gap:18px;align-items:flex-start;
+    display:flex;gap:18px;align-items:center;
     box-shadow:var(--shadow);
     transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
     font-family:inherit;color:inherit;
@@ -92,8 +92,7 @@
   .opt[data-key="A"] .marker{color:var(--blue)}
   .opt[data-key="B"] .marker{color:var(--clay)}
 
-  .opt .body .t{font-size:18px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
-  .opt .body .s{font-size:14.5px;color:var(--muted)}
+  .opt .body .t{font-size:18px;font-weight:600;letter-spacing:-.01em}
 
   .opt[aria-pressed="true"]{border-color:transparent}
   .opt[data-key="A"][aria-pressed="true"]{background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue) inset,var(--shadow)}
@@ -126,6 +125,8 @@
   .done h2{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(26px,5vw,34px);margin-bottom:10px}
   .done p{color:var(--muted);max-width:40ch;margin:0 auto}
   .pick-pill{display:inline-block;margin-top:18px;font-size:14px;font-weight:600;padding:8px 16px;border-radius:999px;background:#fff;border:1.5px solid var(--line)}
+  .again{margin-top:26px;font-family:inherit;font-size:14px;font-weight:600;color:var(--muted);background:none;border:1.5px solid var(--line);border-radius:10px;padding:11px 20px;cursor:pointer;transition:all .18s ease}
+  .again:hover{color:var(--ink);border-color:var(--line-strong)}
 
   /* facilitator launch button */
   .fab{
@@ -236,6 +237,7 @@
       <h2>Response recorded</h2>
       <p>Thank you. Your answer has been added to the room's results.</p>
       <div id="pickPill" class="pick-pill"></div>
+      <div><button class="again" onclick="resetSurvey()">Submit another response</button></div>
     </section>
   </main>
 
@@ -304,11 +306,6 @@
   let selected = null;
   let refreshTimer = null;
 
-  // already voted on this device?
-  if (localStorage.getItem("se_voted")) {
-    showDone(localStorage.getItem("se_voted"));
-  }
-
   function select(key){
     selected = key;
     document.querySelectorAll(".opt").forEach(b=>b.setAttribute("aria-pressed", b.dataset.key===key));
@@ -327,7 +324,6 @@
         body: JSON.stringify({ choice: selected, label: LABELS[selected] })
       });
     }catch(e){ /* best effort; classroom networks vary */ }
-    localStorage.setItem("se_voted", selected);
     showDone(selected);
   }
 
@@ -336,6 +332,17 @@
     const done = document.getElementById("done");
     done.classList.add("show");
     document.getElementById("pickPill").textContent = "You chose: " + LABELS[key];
+  }
+
+  function resetSurvey(){
+    selected = null;
+    document.getElementById("done").classList.remove("show");
+    document.getElementById("survey").style.display="block";
+    document.querySelectorAll(".opt").forEach(b=>b.setAttribute("aria-pressed","false"));
+    const btn = document.getElementById("submit");
+    btn.textContent = "Submit response";
+    btn.classList.remove("ready");
+    window.scrollTo({top:0,behavior:"smooth"});
   }
 
   /* ---- facilitator ---- */
